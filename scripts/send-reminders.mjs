@@ -1,4 +1,7 @@
+import { loadEnvConfig } from '@next/env';
 import { createClient } from '@supabase/supabase-js';
+
+loadEnvConfig(process.cwd());
 import { Resend } from 'resend';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

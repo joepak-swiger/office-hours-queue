@@ -1,4 +1,7 @@
+import { loadEnvConfig } from '@next/env';
 import { createClient } from '@supabase/supabase-js';
+
+loadEnvConfig(process.cwd());
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
