@@ -4,8 +4,12 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { asFriendlyMessage } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
+  let fallbackCourseId = '';
+
   try {
     const formData = await request.formData();
+    fallbackCourseId = String(formData.get('courseId') ?? '').trim();
+
     const payload = joinQueueSchema.parse(Object.fromEntries(formData.entries()));
     const supabase = createSupabaseServiceClient();
 
@@ -26,7 +30,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.redirect(new URL(`/status/${result.status_token}`, request.url), { status: 303 });
   } catch (error) {
-    const url = new URL('/', request.url);
+    console.error('[queue-join-failed]', error);
+    const path = fallbackCourseId ? `/c/${fallbackCourseId}/queue` : '/';
+    const url = new URL(path, request.url);
     url.searchParams.set('error', asFriendlyMessage(error));
     return NextResponse.redirect(url, { status: 303 });
   }

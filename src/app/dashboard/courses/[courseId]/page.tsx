@@ -5,7 +5,7 @@ import { Card } from '@/components/Card';
 import { QrCodeCard } from '@/components/QrCodeCard';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { createTuesdayDemoSchedule } from '../actions';
+import { archiveCourse, createTuesdayDemoSchedule } from '../actions';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -78,7 +78,15 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               {(slots ?? []).length === 0 ? <li>No appointment slots yet.</li> : null}
             </ul>
           </Card>
-        </div>
+
+          <Card>
+            <h2 className="text-xl font-bold text-danger">Archive course</h2>
+            <p className="mt-2 text-sm text-slate-600">Use this for accidental test courses. Archiving hides the course instead of deleting historical records.</p>
+            <form action={archiveCourse} className="mt-4">
+              <input type="hidden" name="courseId" value={course.id} />
+              <Button type="submit" variant="danger">Archive this course</Button>
+            </form>
+          </Card>        </div>
         <aside className="space-y-6">
           <QrCodeCard url={studentUrl} label={`${course.code} Office Hours`} />
           <Card>
@@ -92,3 +100,4 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     </AppShell>
   );
 }
+

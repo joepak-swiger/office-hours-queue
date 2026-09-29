@@ -51,6 +51,41 @@ export async function createCourse(formData: FormData) {
   redirect(`/dashboard/courses/${course.id}`);
 }
 
+
+export async function archiveCourse(formData: FormData) {
+  const { user } = await requireProfessor();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+  if (!courseId) throw new Error('Course is required.');
+
+  const supabase = await createSupabaseServerClient();
+
+  await supabase
+    .from('office_hour_sessions')
+    .update({ status: 'cancelled' })
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .in('status', ['scheduled', 'active', 'paused']);
+
+  await supabase
+    .from('appointment_slots')
+    .update({ status: 'cancelled' })
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .eq('status', 'available');
+
+  const { error } = await supabase
+    .from('courses')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', courseId)
+    .eq('professor_id', user.id);
+
+  if (error) throw error;
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/courses');
+  redirect('/dashboard/courses');
+}
+
 export async function createTuesdayDemoSchedule(formData: FormData) {
   const { user } = await requireProfessor();
   const courseId = String(formData.get('courseId'));
@@ -83,3 +118,4 @@ export async function createTuesdayDemoSchedule(formData: FormData) {
   await supabase.from('appointment_slots').insert(slots);
   revalidatePath(`/dashboard/courses/${courseId}`);
 }
+
