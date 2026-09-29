@@ -3,26 +3,49 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const encoder = new TextEncoder();
   const supabase = createSupabaseServiceClient();
 
+  let open = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const stop = () => {
+    open = false;
+    if (timer) clearTimeout(timer);
+  };
+
+  request.signal.addEventListener('abort', stop);
+
   const stream = new ReadableStream({
     async start(controller) {
-      let open = true;
       async function send() {
         if (!open) return;
-        const [queueResult, appointmentResult] = await Promise.all([
-          supabase.from('queue_entries').select('status, position, updated_at').eq('status_token', token).maybeSingle(),
-          supabase.from('appointments').select('status, updated_at').eq('status_token', token).maybeSingle()
-        ]);
-        const record = queueResult.data ?? appointmentResult.data;
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(record ?? { status: 'not_found' })}\n\n`));
-        setTimeout(send, 8000);
+
+        try {
+          const [queueResult, appointmentResult] = await Promise.all([
+            supabase.from('queue_entries').select('status, position, updated_at').eq('status_token', token).maybeSingle(),
+            supabase.from('appointments').select('status, updated_at').eq('status_token', token).maybeSingle()
+          ]);
+
+          if (!open) return;
+
+          const record = queueResult.data ?? appointmentResult.data;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(record ?? { status: 'not_found' })}\n\n`));
+          timer = setTimeout(send, 8000);
+        } catch (error) {
+          if (open) {
+            console.warn('[student-status-stream-closed]', error);
+            stop();
+          }
+        }
       }
-      await send();
-      return () => { open = false; };
+
+      void send();
+    },
+    cancel() {
+      stop();
     }
   });
 

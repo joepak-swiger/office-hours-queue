@@ -39,3 +39,6 @@ supabase/.temp/
 *.zip
 
 tsconfig.tsbuildinfo
+
+# Local one-off patch scripts
+*-patch.ps1

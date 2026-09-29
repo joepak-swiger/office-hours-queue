@@ -279,7 +279,7 @@ create or replace function public.create_student_status_token(prefix text)
 returns text
 language sql
 as $$
-  select prefix || '_' || translate(encode(gen_random_bytes(32), 'base64'), '+/', '-_');
+  select prefix || '_' || replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
 $$;
 
 create or replace function public.ensure_student(
@@ -459,3 +459,4 @@ create trigger appointments_touch_updated_at before update on public.appointment
 create trigger queue_entries_touch_updated_at before update on public.queue_entries for each row execute function public.touch_updated_at();
 create trigger waitlist_touch_updated_at before update on public.waitlist_entries for each row execute function public.touch_updated_at();
 create trigger subscriptions_touch_updated_at before update on public.notification_subscriptions for each row execute function public.touch_updated_at();
+
