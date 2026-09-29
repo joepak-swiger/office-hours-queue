@@ -10,6 +10,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return new Response('Unauthorized', { status: 401 });
+  const professorId = user.id;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -20,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           .from('queue_entries')
           .select('id', { count: 'exact', head: true })
           .eq('session_id', sessionId)
-          .eq('professor_id', user.id)
+          .eq('professor_id', professorId)
           .in('status', ['waiting', 'next', 'ready', 'checked_in', 'late', 'in_session']);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ activeCount: count ?? 0 })}\n\n`));
         setTimeout(send, 8000);
@@ -32,3 +33,4 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' } });
 }
+
