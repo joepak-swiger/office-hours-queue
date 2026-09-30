@@ -5,7 +5,7 @@ import { Card } from '@/components/Card';
 import { QrCodeCard } from '@/components/QrCodeCard';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, createTuesdayDemoSchedule, reopenAppointmentSlot } from '../actions';
+import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, createOfficeHourBlock, createTuesdayDemoSchedule, reopenAppointmentSlot } from '../actions';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -21,7 +21,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   if (!course) notFound();
 
   const [{ data: slots }, { data: sessions }, { data: schedules }] = await Promise.all([
-    supabase.from('appointment_slots').select('id, starts_at, ends_at, status, appointments(id,status,topic_description,students(full_name,email),topic_categories(label))').eq('course_id', courseId).order('starts_at').limit(30),
+    supabase.from('appointment_slots').select('id, starts_at, ends_at, status, appointments(id,status,topic_description,students(full_name,email),topic_categories(label))').eq('course_id', courseId).order('starts_at').limit(80),
     supabase.from('office_hour_sessions').select('id, starts_at, ends_at, status, running_delay_minutes').eq('course_id', courseId).order('starts_at', { ascending: false }).limit(5),
     supabase.from('office_hour_schedules').select('*').eq('course_id', courseId).order('day_of_week')
   ]);
@@ -43,12 +43,71 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           </Card>
 
           <Card>
-            <h2 className="text-xl font-bold text-ink">Quick setup</h2>
-            <p className="mt-2 text-sm text-slate-600">For the v0.1 demo workflow, this creates Tuesday 2:00–4:00 PM office hours, appointment slots, and an active live session.</p>
-            <form action={createTuesdayDemoSchedule} className="mt-4">
+            <h2 className="text-xl font-bold text-ink">Create office-hour block</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Create real appointment slots for this course. This replaces the old demo-only workflow.
+            </p>
+
+            <form action={createOfficeHourBlock} className="mt-5 grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="courseId" value={course.id} />
-              <Button type="submit">Create Tuesday 2–4 demo schedule</Button>
+
+              <label className="block text-sm font-medium text-ink">
+                Date
+                <input required type="date" name="date" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Slot length
+                <select name="slotLengthMinutes" defaultValue={course.default_appointment_minutes ?? 20} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3">
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Start time
+                <input required type="time" name="startTime" defaultValue="14:00" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                End time
+                <input required type="time" name="endTime" defaultValue="16:00" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Location, optional
+                <input name="location" defaultValue={course.office_location ?? ''} placeholder="Office, room, or building" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Virtual meeting link, optional
+                <input name="virtualMeetingUrl" defaultValue={course.virtual_meeting_url ?? ''} placeholder="https://..." className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3" />
+              </label>
+
+              <label className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 sm:col-span-2">
+                <input type="checkbox" name="makeLiveQueueActive" value="true" className="mt-1" />
+                Also start the live walk-in queue for this block now.
+              </label>
+
+              <div className="sm:col-span-2">
+                <Button type="submit">Create office-hour block</Button>
+              </div>
             </form>
+
+            <details className="mt-5 rounded-2xl border border-slate-200 p-4">
+              <summary className="cursor-pointer font-semibold text-ink">Demo helper</summary>
+              <p className="mt-2 text-sm text-slate-600">
+                For quick testing only, this creates Tuesday 2:00–4:00 PM office hours and opens a live queue.
+              </p>
+              <form action={createTuesdayDemoSchedule} className="mt-4">
+                <input type="hidden" name="courseId" value={course.id} />
+                <Button type="submit" variant="secondary">Create Tuesday 2–4 demo schedule</Button>
+              </form>
+            </details>
           </Card>
 
           <Card>
@@ -57,14 +116,29 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               <div>
                 <h3 className="font-semibold text-ink">Recurring schedules</h3>
                 <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                  {(schedules ?? []).map((schedule: any) => <li key={schedule.id} className="rounded-xl bg-slate-50 p-3">Day {schedule.day_of_week}: {schedule.start_time}–{schedule.end_time}</li>)}
+                  {(schedules ?? []).map((schedule: any) => {
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    return (
+                      <li key={schedule.id} className="rounded-xl bg-slate-50 p-3">
+                        {dayNames[schedule.day_of_week] ?? 'Selected day'}: {schedule.start_time} to {schedule.end_time}
+                        {schedule.location ? <span className="block text-xs text-slate-500">{schedule.location}</span> : null}
+                      </li>
+                    );
+                  })}
                   {(schedules ?? []).length === 0 ? <li>No schedules yet.</li> : null}
                 </ul>
               </div>
               <div>
                 <h3 className="font-semibold text-ink">Recent sessions</h3>
                 <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                  {(sessions ?? []).map((session: any) => <li key={session.id} className="rounded-xl bg-slate-50 p-3"><a href={`/dashboard/live/${session.id}`}>{new Date(session.starts_at).toLocaleString()} - {session.status}</a></li>)}
+                  {(sessions ?? []).map((session: any) => (
+                    <li key={session.id} className="rounded-xl bg-slate-50 p-3">
+                      <a href={`/dashboard/live/${session.id}`} className="font-medium text-ink">
+                        {new Date(session.starts_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                      </a>
+                      <span className="block text-xs text-slate-500">Status: {session.status}</span>
+                    </li>
+                  ))}
                   {(sessions ?? []).length === 0 ? <li>No sessions yet.</li> : null}
                 </ul>
               </div>

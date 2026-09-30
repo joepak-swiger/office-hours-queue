@@ -61,7 +61,7 @@ export async function archiveCourse(formData: FormData) {
 
   await supabase
     .from('office_hour_sessions')
-    .update({ status: 'available' })
+    .update({ status: 'cancelled' })
     .eq('course_id', courseId)
     .eq('professor_id', user.id)
     .in('status', ['scheduled', 'active', 'paused']);
@@ -234,5 +234,137 @@ export async function reopenAppointmentSlot(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}
+
+
+export async function createOfficeHourBlock(formData: FormData) {
+  const { user } = await requireProfessor();
+
+  const courseId = String(formData.get('courseId') ?? '').trim();
+  const date = String(formData.get('date') ?? '').trim();
+  const startTime = String(formData.get('startTime') ?? '').trim();
+  const endTime = String(formData.get('endTime') ?? '').trim();
+  const slotLengthMinutes = Number(formData.get('slotLengthMinutes') ?? 20);
+  const location = String(formData.get('location') ?? '').trim();
+  const virtualMeetingUrl = String(formData.get('virtualMeetingUrl') ?? '').trim();
+  const makeLiveQueueActive = String(formData.get('makeLiveQueueActive') ?? '') === 'true';
+
+  if (!courseId) throw new Error('Course is required.');
+  if (!date || !startTime || !endTime) throw new Error('Date, start time, and end time are required.');
+  if (!Number.isInteger(slotLengthMinutes) || slotLengthMinutes < 5 || slotLengthMinutes > 120) {
+    throw new Error('Slot length must be between 5 and 120 minutes.');
+  }
+
+  const startsAt = new Date(`${date}T${startTime}:00`);
+  const endsAt = new Date(`${date}T${endTime}:00`);
+
+  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+    throw new Error('Invalid date or time.');
+  }
+
+  if (endsAt <= startsAt) {
+    throw new Error('End time must be after start time.');
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: course, error: courseError } = await supabase
+    .from('courses')
+    .select('id, default_appointment_minutes, office_location, virtual_meeting_url')
+    .eq('id', courseId)
+    .eq('professor_id', user.id)
+    .single();
+
+  if (courseError) throw courseError;
+  if (!course) throw new Error('Course not found.');
+
+  const effectiveLocation = location || course.office_location || null;
+  const effectiveVirtualMeetingUrl = virtualMeetingUrl || course.virtual_meeting_url || null;
+
+  const { count: overlappingSlotCount, error: overlapError } = await supabase
+    .from('appointment_slots')
+    .select('id', { count: 'exact', head: true })
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .gte('starts_at', startsAt.toISOString())
+    .lt('starts_at', endsAt.toISOString());
+
+  if (overlapError) throw overlapError;
+
+  if ((overlappingSlotCount ?? 0) > 0) {
+    throw new Error('This course already has appointment slots during that time block.');
+  }
+
+  const dayOfWeek = startsAt.getDay();
+
+  const { data: schedule, error: scheduleError } = await supabase
+    .from('office_hour_schedules')
+    .insert({
+      professor_id: user.id,
+      course_id: courseId,
+      day_of_week: dayOfWeek,
+      start_time: startTime,
+      end_time: endTime,
+      location: effectiveLocation,
+      virtual_meeting_url: effectiveVirtualMeetingUrl,
+      recurring: false
+    })
+    .select('id')
+    .single();
+
+  if (scheduleError) throw scheduleError;
+
+  const now = new Date();
+  const sessionStatus = makeLiveQueueActive || (startsAt <= now && endsAt > now) ? 'active' : 'scheduled';
+
+  const { data: session, error: sessionError } = await supabase
+    .from('office_hour_sessions')
+    .insert({
+      professor_id: user.id,
+      course_id: courseId,
+      schedule_id: schedule.id,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      status: sessionStatus
+    })
+    .select('id')
+    .single();
+
+  if (sessionError) throw sessionError;
+
+  const slots = [];
+  for (let start = new Date(startsAt); start < endsAt; start = new Date(start.getTime() + slotLengthMinutes * 60000)) {
+    const slotEnd = new Date(start.getTime() + slotLengthMinutes * 60000);
+
+    if (slotEnd > endsAt) break;
+
+    slots.push({
+      professor_id: user.id,
+      course_id: courseId,
+      schedule_id: schedule.id,
+      starts_at: start.toISOString(),
+      ends_at: slotEnd.toISOString(),
+      location: effectiveLocation,
+      virtual_meeting_url: effectiveVirtualMeetingUrl,
+      status: 'available'
+    });
+  }
+
+  if (slots.length === 0) {
+    throw new Error('That time block is too short for the selected slot length.');
+  }
+
+  const { error: slotsError } = await supabase.from('appointment_slots').insert(slots);
+  if (slotsError) throw slotsError;
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/courses');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+
+  if (sessionStatus === 'active') {
+    redirect(`/dashboard/live/${session.id}`);
+  }
+
   redirect(`/dashboard/courses/${courseId}`);
 }
