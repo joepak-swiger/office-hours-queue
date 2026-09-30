@@ -8,7 +8,7 @@ import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, closeAppointmentSlotsForDay, createOfficeHourBlock, createTuesdayDemoSchedule, reopenAppointmentSlot, reopenAppointmentSlotsForDay } from '../actions';
 
-export default async function CourseDetailPage({ params, searchParams }: { params: Promise<{ courseId: string }>; searchParams?: Promise<{ success?: string; error?: string }> }) {
+export default async function CourseDetailPage({ params, searchParams }: { params: Promise<{ courseId: string }>; searchParams?: Promise<{ success?: string; error?: string; notice?: string }> }) {
   const { courseId } = await params;
   const query = searchParams ? await searchParams : {};
   const { user } = await requireProfessor();
@@ -46,7 +46,7 @@ export default async function CourseDetailPage({ params, searchParams }: { param
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <FloatingNotice success={query.success} error={query.error} />
+          <FloatingNotice success={query.success} error={query.error} noticeId={query.notice} />
 
           <Card>
             <p className="text-sm font-semibold uppercase tracking-wide text-campus">{course.terms?.name}</p>

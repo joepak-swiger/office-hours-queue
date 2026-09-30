@@ -8,10 +8,15 @@ import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 function redirectToCourse(courseId: string, params: Record<string, string> = {}) {
-  const search = new URLSearchParams(params).toString();
+  const searchParams = new URLSearchParams(params);
+
+  if (searchParams.has('success') || searchParams.has('error')) {
+    searchParams.set('notice', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  }
+
+  const search = searchParams.toString();
   redirect(`/dashboard/courses/${courseId}${search ? `?${search}` : ''}`);
 }
-
 
 export async function createTerm(formData: FormData) {
   const { user } = await requireProfessor();

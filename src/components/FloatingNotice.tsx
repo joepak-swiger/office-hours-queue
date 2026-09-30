@@ -2,29 +2,32 @@
 
 import { useEffect, useState } from 'react';
 
+function clearNoticeFromUrl() {
+  if (typeof window === 'undefined') return;
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete('success');
+  url.searchParams.delete('error');
+  url.searchParams.delete('notice');
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, '', nextUrl);
+}
+
 export function FloatingNotice({
   success,
   error,
+  noticeId,
   durationMs = 4500
 }: {
   success?: string;
   error?: string;
+  noticeId?: string;
   durationMs?: number;
 }) {
   const message = success || error || '';
   const kind = error ? 'error' : 'success';
   const [visible, setVisible] = useState(Boolean(message));
-
-  function clearNoticeFromUrl() {
-    if (typeof window === 'undefined') return;
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete('success');
-    url.searchParams.delete('error');
-
-    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState({}, '', nextUrl);
-  }
 
   function dismiss() {
     setVisible(false);
@@ -37,11 +40,12 @@ export function FloatingNotice({
     setVisible(true);
 
     const timer = window.setTimeout(() => {
-      dismiss();
+      setVisible(false);
+      clearNoticeFromUrl();
     }, durationMs);
 
     return () => window.clearTimeout(timer);
-  }, [message, durationMs]);
+  }, [message, noticeId, durationMs]);
 
   if (!message || !visible) return null;
 
