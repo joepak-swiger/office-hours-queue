@@ -40,7 +40,7 @@ export async function getProfessorDashboard(professorId: string) {
     supabase.from('queue_entries').select('id, status, created_at').eq('professor_id', professorId),
     supabase
       .from('appointments')
-      .select('id, status, topic_description, course_section, created_at, appointment_slots!inner(starts_at,ends_at,location,virtual_meeting_url), courses(code,title,section), students(full_name,email), topic_categories(label)')
+      .select('id, course_id, status, topic_description, course_section, created_at, appointment_slots!inner(starts_at,ends_at,location,virtual_meeting_url), courses(code,title,section), students(full_name,email), topic_categories(label)')
       .eq('professor_id', professorId)
       .in('status', ['scheduled', 'checked_in', 'ready', 'late', 'in_session'])
       .gte('appointment_slots.starts_at', now)

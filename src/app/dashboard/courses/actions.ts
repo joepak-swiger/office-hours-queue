@@ -119,3 +119,51 @@ export async function createTuesdayDemoSchedule(formData: FormData) {
   revalidatePath(`/dashboard/courses/${courseId}`);
 }
 
+
+
+export async function cancelAppointmentByInstructor(formData: FormData) {
+  const { user } = await requireProfessor();
+  const appointmentId = String(formData.get('appointmentId') ?? '').trim();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+
+  if (!appointmentId || !courseId) throw new Error('Appointment and course are required.');
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: appointment, error: appointmentError } = await supabase
+    .from('appointments')
+    .select('id, slot_id, course_id, professor_id, status')
+    .eq('id', appointmentId)
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .single();
+
+  if (appointmentError) throw appointmentError;
+  if (!appointment) throw new Error('Appointment not found.');
+
+  if (['completed', 'cancelled_by_student', 'cancelled_by_instructor', 'no_show'].includes(appointment.status)) {
+    redirect(`/dashboard/courses/${courseId}`);
+  }
+
+  const { error: updateAppointmentError } = await supabase
+    .from('appointments')
+    .update({ status: 'cancelled_by_instructor' })
+    .eq('id', appointment.id)
+    .eq('professor_id', user.id);
+
+  if (updateAppointmentError) throw updateAppointmentError;
+
+  if (appointment.slot_id) {
+    const { error: updateSlotError } = await supabase
+      .from('appointment_slots')
+      .update({ status: 'cancelled' })
+      .eq('id', appointment.slot_id)
+      .eq('professor_id', user.id);
+
+    if (updateSlotError) throw updateSlotError;
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}

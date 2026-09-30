@@ -5,7 +5,7 @@ import { Card } from '@/components/Card';
 import { QrCodeCard } from '@/components/QrCodeCard';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { archiveCourse, createTuesdayDemoSchedule } from '../actions';
+import { archiveCourse, cancelAppointmentByInstructor, createTuesdayDemoSchedule } from '../actions';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -21,7 +21,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   if (!course) notFound();
 
   const [{ data: slots }, { data: sessions }, { data: schedules }] = await Promise.all([
-    supabase.from('appointment_slots').select('id, starts_at, ends_at, status').eq('course_id', courseId).order('starts_at').limit(12),
+    supabase.from('appointment_slots').select('id, starts_at, ends_at, status, appointments(id,status,topic_description,students(full_name,email),topic_categories(label))').eq('course_id', courseId).order('starts_at').limit(30),
     supabase.from('office_hour_sessions').select('id, starts_at, ends_at, status, running_delay_minutes').eq('course_id', courseId).order('starts_at', { ascending: false }).limit(5),
     supabase.from('office_hour_schedules').select('*').eq('course_id', courseId).order('day_of_week')
   ]);
@@ -34,7 +34,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         <div className="space-y-6">
           <Card>
             <p className="text-sm font-semibold uppercase tracking-wide text-campus">{course.terms?.name}</p>
-            <h1 className="mt-2 text-3xl font-bold text-ink">{course.code}{course.section ? ` - ${course.section}` : ''}</h1>
+            <h1 className="mt-2 text-3xl font-bold text-ink">{course.code}</h1>
             <p className="mt-2 text-slate-600">{course.title}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <ButtonLink href={studentUrl} variant="secondary">Open student page</ButtonLink>
@@ -74,7 +74,38 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <Card>
             <h2 className="text-xl font-bold text-ink">Appointment slots</h2>
             <ul className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              {(slots ?? []).map((slot: any) => <li key={slot.id} className="rounded-xl bg-slate-50 p-3">{new Date(slot.starts_at).toLocaleString()} - {slot.status}</li>)}
+              {(slots ?? []).map((slot: any) => {
+                const appointment = (slot.appointments ?? []).find((appt: any) => ['scheduled', 'checked_in', 'ready', 'late', 'in_session'].includes(appt.status));
+                const student = appointment?.students;
+                const topic = appointment?.topic_categories;
+
+                return (
+                  <li key={slot.id} id={appointment ? 'appointment-' + appointment.id : undefined} className="rounded-xl bg-slate-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-ink">{new Date(slot.starts_at).toLocaleString()}</p>
+                        <p className="mt-1 text-slate-500">Slot status: {slot.status}</p>
+                      </div>
+                      {appointment ? <span className="rounded-full bg-calm px-3 py-1 text-xs font-semibold text-campus">booked</span> : null}
+                    </div>
+
+                    {appointment ? (
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="font-semibold text-ink">{student?.full_name ?? 'Unknown student'}</p>
+                        {student?.email ? <p className="text-xs text-slate-500">{student.email}</p> : null}
+                        {topic?.label ? <p className="mt-2 text-sm text-campus">{topic.label}</p> : null}
+                        {appointment.topic_description ? <p className="mt-1 text-sm text-slate-600">{appointment.topic_description}</p> : null}
+
+                        <form action={cancelAppointmentByInstructor} className="mt-3">
+                          <input type="hidden" name="appointmentId" value={appointment.id} />
+                          <input type="hidden" name="courseId" value={course.id} />
+                          <Button type="submit" variant="danger">Cancel appointment</Button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
               {(slots ?? []).length === 0 ? <li>No appointment slots yet.</li> : null}
             </ul>
           </Card>

@@ -45,20 +45,23 @@ export default async function DashboardPage() {
               const topic = appointment.topic_categories;
 
               return (
-                <div key={appointment.id} className="rounded-2xl border border-slate-200 p-4">
+                <a key={appointment.id} href={'/dashboard/courses/' + appointment.course_id + '#appointment-' + appointment.id} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-campus">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="font-semibold text-ink">{student?.full_name ?? 'Unknown student'}</p>
-                      <p className="text-sm text-slate-500">{course?.code}{course?.section ? ` - ${course.section}` : ''} - {course?.title}</p>
+                      <p className="text-sm text-slate-500">{course?.code} - {course?.title}</p>
                       <p className="mt-2 text-sm text-slate-700">
                         {slot?.starts_at ? new Date(slot.starts_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Time not available'}
                       </p>
                       {topic?.label ? <p className="mt-2 text-sm text-campus">{topic.label}</p> : null}
                       {appointment.topic_description ? <p className="mt-1 text-sm text-slate-600">{appointment.topic_description}</p> : null}
                     </div>
-                    <span className="rounded-full bg-calm px-3 py-1 text-sm font-medium text-campus">{appointment.status.replaceAll('_', ' ')}</span>
+                    <div className="flex flex-col items-start gap-2 sm:items-end">
+                      <span className="rounded-full bg-calm px-3 py-1 text-sm font-medium text-campus">{appointment.status.replaceAll('_', ' ')}</span>
+                      <span className="text-sm font-semibold text-campus">View details</span>
+                    </div>
                   </div>
-                </div>
+                </a>
               );
             })
           )}
@@ -98,7 +101,7 @@ export default async function DashboardPage() {
             ) : (
               dashboard.courses.map((course: any) => (
                 <a key={course.id} href={`/dashboard/courses/${course.id}`} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-campus">
-                  <p className="font-semibold text-ink">{course.code} {course.section ? ` - ${course.section}` : ''}</p>
+                  <p className="font-semibold text-ink">{course.code}</p>
                   <p className="text-sm text-slate-500">{course.title}</p>
                   <p className="mt-2 text-xs text-slate-400">QR URL: /c/{course.public_slug}</p>
                 </a>

@@ -22,7 +22,7 @@ export default async function CoursesPage() {
         {(courses ?? []).map((course: any) => (
           <Card key={course.id}>
             <p className="text-sm text-slate-500">{course.terms?.name}</p>
-            <h2 className="mt-1 text-xl font-bold text-ink">{course.code}{course.section ? ` · ${course.section}` : ''}</h2>
+            <h2 className="mt-1 text-xl font-bold text-ink">{course.code}</h2>
             <p className="mt-1 text-slate-600">{course.title}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <ButtonLink href={`/dashboard/courses/${course.id}`}>Manage</ButtonLink>
