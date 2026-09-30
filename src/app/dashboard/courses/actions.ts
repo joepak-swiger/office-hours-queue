@@ -61,7 +61,7 @@ export async function archiveCourse(formData: FormData) {
 
   await supabase
     .from('office_hour_sessions')
-    .update({ status: 'cancelled' })
+    .update({ status: 'available' })
     .eq('course_id', courseId)
     .eq('professor_id', user.id)
     .in('status', ['scheduled', 'active', 'paused']);
@@ -162,6 +162,75 @@ export async function cancelAppointmentByInstructor(formData: FormData) {
 
     if (updateSlotError) throw updateSlotError;
   }
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}
+
+
+export async function closeAppointmentSlot(formData: FormData) {
+  const { user } = await requireProfessor();
+  const slotId = String(formData.get('slotId') ?? '').trim();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+
+  if (!slotId || !courseId) throw new Error('Slot and course are required.');
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: slot, error: slotError } = await supabase
+    .from('appointment_slots')
+    .select('id, course_id, professor_id, status')
+    .eq('id', slotId)
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .single();
+
+  if (slotError) throw slotError;
+  if (!slot) throw new Error('Slot not found.');
+
+  const { error: updateSlotError } = await supabase
+    .from('appointment_slots')
+    .update({ status: 'cancelled' })
+    .eq('id', slot.id)
+    .eq('professor_id', user.id);
+
+  if (updateSlotError) throw updateSlotError;
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}
+
+export async function reopenAppointmentSlot(formData: FormData) {
+  const { user } = await requireProfessor();
+  const slotId = String(formData.get('slotId') ?? '').trim();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+
+  if (!slotId || !courseId) throw new Error('Slot and course are required.');
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: activeAppointment } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('slot_id', slotId)
+    .eq('professor_id', user.id)
+    .in('status', ['scheduled', 'checked_in', 'ready', 'late', 'in_session'])
+    .maybeSingle();
+
+  if (activeAppointment) {
+    throw new Error('This slot still has an active appointment.');
+  }
+
+  const { error: updateSlotError } = await supabase
+    .from('appointment_slots')
+    .update({ status: 'available' })
+    .eq('id', slotId)
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id);
+
+  if (updateSlotError) throw updateSlotError;
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);

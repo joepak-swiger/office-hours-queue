@@ -5,7 +5,7 @@ import { Card } from '@/components/Card';
 import { QrCodeCard } from '@/components/QrCodeCard';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { archiveCourse, cancelAppointmentByInstructor, createTuesdayDemoSchedule } from '../actions';
+import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, createTuesdayDemoSchedule, reopenAppointmentSlot } from '../actions';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -99,10 +99,28 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                         <form action={cancelAppointmentByInstructor} className="mt-3">
                           <input type="hidden" name="appointmentId" value={appointment.id} />
                           <input type="hidden" name="courseId" value={course.id} />
-                          <Button type="submit" variant="danger">Cancel appointment</Button>
+                          <Button type="submit" variant="danger">Cancel appointment and reopen slot</Button>
                         </form>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="mt-3">
+                        {slot.status === 'available' ? (
+                          <form action={closeAppointmentSlot}>
+                            <input type="hidden" name="slotId" value={slot.id} />
+                            <input type="hidden" name="courseId" value={course.id} />
+                            <Button type="submit" variant="secondary">Close this slot</Button>
+                          </form>
+                        ) : null}
+
+                        {slot.status === 'cancelled' ? (
+                          <form action={reopenAppointmentSlot}>
+                            <input type="hidden" name="slotId" value={slot.id} />
+                            <input type="hidden" name="courseId" value={course.id} />
+                            <Button type="submit" variant="secondary">Reopen this slot</Button>
+                          </form>
+                        ) : null}
+                      </div>
+                    )}
                   </li>
                 );
               })}
