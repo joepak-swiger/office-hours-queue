@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { FloatingNotice } from '@/components/FloatingNotice';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { ProfessorSessionLive } from './professor-session-live';
 
-export default async function LiveSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+export default async function LiveSessionPage({ params, searchParams }: { params: Promise<{ sessionId: string }>; searchParams?: Promise<{ success?: string; error?: string; notice?: string }> }) {
   const { sessionId } = await params;
+  const query = searchParams ? await searchParams : {};
   const { user } = await requireProfessor();
   const supabase = await createSupabaseServerClient();
 
@@ -31,6 +33,8 @@ export default async function LiveSessionPage({ params }: { params: Promise<{ se
 
   return (
     <AppShell>
+      <FloatingNotice success={query.success} error={query.error} noticeId={query.notice} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-campus">Office Hours Live</p>
