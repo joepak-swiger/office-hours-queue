@@ -368,3 +368,69 @@ export async function createOfficeHourBlock(formData: FormData) {
 
   redirect(`/dashboard/courses/${courseId}`);
 }
+
+
+export async function closeAppointmentSlotsForDay(formData: FormData) {
+  const { user } = await requireProfessor();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+  const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
+
+  if (!courseId) throw new Error('Course is required.');
+  if (slotIds.length === 0) redirect(`/dashboard/courses/${courseId}`);
+
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from('appointment_slots')
+    .update({ status: 'cancelled' })
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .eq('status', 'available')
+    .in('id', slotIds);
+
+  if (error) throw error;
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}
+
+export async function reopenAppointmentSlotsForDay(formData: FormData) {
+  const { user } = await requireProfessor();
+  const courseId = String(formData.get('courseId') ?? '').trim();
+  const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
+
+  if (!courseId) throw new Error('Course is required.');
+  if (slotIds.length === 0) redirect(`/dashboard/courses/${courseId}`);
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: activeAppointments, error: appointmentError } = await supabase
+    .from('appointments')
+    .select('slot_id')
+    .eq('course_id', courseId)
+    .eq('professor_id', user.id)
+    .in('slot_id', slotIds)
+    .in('status', ['scheduled', 'checked_in', 'ready', 'late', 'in_session']);
+
+  if (appointmentError) throw appointmentError;
+
+  const blockedSlotIds = new Set((activeAppointments ?? []).map((appointment) => appointment.slot_id));
+  const safeSlotIds = slotIds.filter((slotId) => !blockedSlotIds.has(slotId));
+
+  if (safeSlotIds.length > 0) {
+    const { error } = await supabase
+      .from('appointment_slots')
+      .update({ status: 'available' })
+      .eq('course_id', courseId)
+      .eq('professor_id', user.id)
+      .eq('status', 'cancelled')
+      .in('id', safeSlotIds);
+
+    if (error) throw error;
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  redirect(`/dashboard/courses/${courseId}`);
+}

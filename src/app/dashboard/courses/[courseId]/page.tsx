@@ -5,7 +5,7 @@ import { Card } from '@/components/Card';
 import { QrCodeCard } from '@/components/QrCodeCard';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, createOfficeHourBlock, createTuesdayDemoSchedule, reopenAppointmentSlot } from '../actions';
+import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, closeAppointmentSlotsForDay, createOfficeHourBlock, createTuesdayDemoSchedule, reopenAppointmentSlot, reopenAppointmentSlotsForDay } from '../actions';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = await params;
@@ -194,6 +194,28 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                           </div>
                         </div>
                       </summary>
+
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {availableCount > 0 ? (
+                          <form action={closeAppointmentSlotsForDay}>
+                            <input type="hidden" name="courseId" value={course.id} />
+                            {daySlots.filter((slot: any) => slot.status === 'available').map((slot: any) => (
+                              <input key={slot.id} type="hidden" name="slotIds" value={slot.id} />
+                            ))}
+                            <Button type="submit" variant="secondary">Close all open slots for this day</Button>
+                          </form>
+                        ) : null}
+
+                        {closedCount > 0 ? (
+                          <form action={reopenAppointmentSlotsForDay}>
+                            <input type="hidden" name="courseId" value={course.id} />
+                            {daySlots.filter((slot: any) => slot.status === 'cancelled').map((slot: any) => (
+                              <input key={slot.id} type="hidden" name="slotIds" value={slot.id} />
+                            ))}
+                            <Button type="submit" variant="secondary">Reopen closed slots for this day</Button>
+                          </form>
+                        ) : null}
+                      </div>
 
                       <ul className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                         {daySlots.map((slot: any) => {
