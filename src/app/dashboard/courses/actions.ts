@@ -156,7 +156,7 @@ export async function cancelAppointmentByInstructor(formData: FormData) {
   if (appointment.slot_id) {
     const { error: updateSlotError } = await supabase
       .from('appointment_slots')
-      .update({ status: 'cancelled' })
+      .update({ status: 'available' })
       .eq('id', appointment.slot_id)
       .eq('professor_id', user.id);
 

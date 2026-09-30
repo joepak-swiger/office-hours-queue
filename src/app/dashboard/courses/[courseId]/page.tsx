@@ -99,7 +99,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                         <form action={cancelAppointmentByInstructor} className="mt-3">
                           <input type="hidden" name="appointmentId" value={appointment.id} />
                           <input type="hidden" name="courseId" value={course.id} />
-                          <Button type="submit" variant="danger">Cancel appointment and reopen slot</Button>
+                          <Button type="submit" variant="danger">Cancel student booking and reopen slot</Button>
                         </form>
                       </div>
                     ) : (
