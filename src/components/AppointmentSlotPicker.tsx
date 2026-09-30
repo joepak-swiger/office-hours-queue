@@ -94,6 +94,7 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
 
   const selectedSlots = selectedDate ? grouped[selectedDate] ?? [] : [];
   const timePanelRef = useRef<HTMLDivElement>(null);
+  const simpleListRef = useRef<HTMLDivElement>(null);
   const availableDateSet = useMemo(() => new Set(dateKeys), [dateKeys]);
 
   const calendarDays = useMemo(() => {
@@ -136,6 +137,12 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
       if (window.matchMedia('(max-width: 1279px)').matches) {
         timePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    }, 50);
+  }
+
+  function scrollToSimpleList() {
+    window.setTimeout(() => {
+      simpleListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
 
@@ -246,10 +253,15 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
         </div>
       </div>
 
-      <details className="mt-4 rounded-2xl border border-slate-200 p-4">
+      <details
+        className="mt-4 rounded-2xl border border-slate-200 p-4"
+        onToggle={(event) => {
+          if (event.currentTarget.open) scrollToSimpleList();
+        }}
+      >
         <summary className="cursor-pointer font-semibold text-ink">Prefer a simple list?</summary>
 
-        <div className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-2">
+        <div ref={simpleListRef} className="scroll-mt-6 mt-4 max-h-96 space-y-3 overflow-y-auto pr-2">
           {dateKeys.map((key, index) => (
             <details key={key} open={index === 0} className="rounded-2xl border border-slate-200 bg-white p-4">
               <summary className="cursor-pointer list-none">
