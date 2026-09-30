@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ConfirmSubmitButton } from '@/components/ConfirmSubmitButton';
 import { FloatingNotice } from '@/components/FloatingNotice';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -125,7 +126,14 @@ export default async function LiveSessionPage({
               <Button name="action" value="delay_10" variant="secondary" type="submit">Running 10 minutes late</Button>
               <Button name="action" value="delay_20" variant="secondary" type="submit">Running 20 minutes late</Button>
               <div className="sm:col-span-2">
-                <Button name="action" value="cancel_today" variant="danger" type="submit">Cancel today's office hours</Button>
+                <ConfirmSubmitButton
+                  name="action"
+                  value="cancel_today"
+                  variant="danger"
+                  confirmMessage="Cancel today's office hours? This will stop the live queue for this session."
+                >
+                  Cancel today's office hours
+                </ConfirmSubmitButton>
               </div>
             </form>
           </details>
@@ -231,7 +239,15 @@ function QueueEntryCard({ entry, index, sessionId }: { entry: any; index: number
           ) : null}
 
           {!isCurrent ? (
-            <Button name="action" value="mark_no_show" type="submit" variant="secondary" className="px-3 py-2">No-show</Button>
+            <ConfirmSubmitButton
+              name="action"
+              value="mark_no_show"
+              variant="secondary"
+              className="px-3 py-2"
+              confirmMessage="Mark this student as a no-show? They will be removed from the active queue."
+            >
+              No-show
+            </ConfirmSubmitButton>
           ) : null}
 
           {canMoveDown ? (
@@ -239,7 +255,15 @@ function QueueEntryCard({ entry, index, sessionId }: { entry: any; index: number
           ) : null}
 
           {!isCurrent ? (
-            <Button name="action" value="cancel_entry" type="submit" variant="danger" className="px-3 py-2">Remove</Button>
+            <ConfirmSubmitButton
+              name="action"
+              value="cancel_entry"
+              variant="danger"
+              className="px-3 py-2"
+              confirmMessage="Remove this student from the queue? This cannot be undone from this screen."
+            >
+              Remove
+            </ConfirmSubmitButton>
           ) : null}
         </form>
       </div>
