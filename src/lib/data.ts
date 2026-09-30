@@ -92,12 +92,12 @@ export async function getStatusByToken(token: string) {
   const [queueResult, appointmentResult] = await Promise.all([
     supabase
       .from('queue_entries')
-      .select('id, session_id, status, position, status_token, topic_description, course_section, created_at, on_my_way_at, checked_in_at, called_next_at, ready_at, started_at, completed_at, wait_minutes, duration_minutes, courses(code,title,office_location,virtual_meeting_url,default_appointment_minutes,queue_warning_minutes), students(full_name,email), topic_categories(label), office_hour_sessions(status,running_delay_minutes)')
+      .select('id, session_id, status, position, status_token, topic_description, course_section, created_at, on_my_way_at, checked_in_at, called_next_at, ready_at, started_at, completed_at, wait_minutes, duration_minutes, courses(code,title,public_slug,office_location,virtual_meeting_url,default_appointment_minutes,queue_warning_minutes), students(full_name,email), topic_categories(label), office_hour_sessions(status,running_delay_minutes)')
       .eq('status_token', token)
       .maybeSingle(),
     supabase
       .from('appointments')
-      .select('id, status, status_token, topic_description, course_section, created_at, checked_in_at, ready_at, started_at, completed_at, wait_minutes, duration_minutes, appointment_slots(starts_at,ends_at,location,virtual_meeting_url), courses(code,title,office_location,virtual_meeting_url), students(full_name,email), topic_categories(label)')
+      .select('id, status, status_token, topic_description, course_section, created_at, checked_in_at, ready_at, started_at, completed_at, wait_minutes, duration_minutes, appointment_slots(starts_at,ends_at,location,virtual_meeting_url), courses(code,title,public_slug,office_location,virtual_meeting_url), students(full_name,email), topic_categories(label)')
       .eq('status_token', token)
       .maybeSingle()
   ]);
@@ -118,3 +118,4 @@ export async function getStatusByToken(token: string) {
   if (appointmentResult.data) return { type: 'appointment' as const, record: appointmentResult.data, activeEntries: [] };
   return null;
 }
+

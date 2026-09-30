@@ -21,8 +21,8 @@ export default async function DashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active courses" value={dashboard.courses.length} helper="Not archived" />
         <StatCard label="Active live sessions" value={dashboard.sessions.length} helper="Running or paused" />
-        <StatCard label="Waiting now" value={dashboard.activeWaiting} helper="Queue entries needing attention" />
-        <StatCard label="Total student interactions" value={dashboard.appointmentCount + dashboard.queueCount} helper="Appointments + queue entries" />
+        <StatCard label="Active queue" value={dashboard.activeWaiting} helper="Students still needing attention" />
+        <StatCard label="Total tracked interactions" value={dashboard.appointmentCount + dashboard.queueCount} helper="All-time appointments + queue joins" />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -70,3 +70,4 @@ export default async function DashboardPage() {
     </AppShell>
   );
 }
+
