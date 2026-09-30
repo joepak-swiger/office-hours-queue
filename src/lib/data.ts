@@ -25,11 +25,27 @@ export async function requireProfessor() {
 
 export async function getProfessorDashboard(professorId: string) {
   const supabase = await createSupabaseServerClient();
-  const [{ data: courses }, { data: sessions }, { data: appointments }, { data: queueEntries }] = await Promise.all([
+  const now = new Date().toISOString();
+
+  const [
+    { data: courses },
+    { data: sessions },
+    { data: appointments },
+    { data: queueEntries },
+    { data: upcomingAppointments }
+  ] = await Promise.all([
     supabase.from('courses').select('id, code, title, section, public_slug, archived_at').eq('professor_id', professorId).is('archived_at', null).order('code'),
     supabase.from('office_hour_sessions').select('id, course_id, starts_at, ends_at, status, running_delay_minutes, courses(code,title)').eq('professor_id', professorId).in('status', ['active', 'paused']).order('starts_at'),
     supabase.from('appointments').select('id, status, created_at').eq('professor_id', professorId),
-    supabase.from('queue_entries').select('id, status, created_at').eq('professor_id', professorId)
+    supabase.from('queue_entries').select('id, status, created_at').eq('professor_id', professorId),
+    supabase
+      .from('appointments')
+      .select('id, status, topic_description, course_section, created_at, appointment_slots!inner(starts_at,ends_at,location,virtual_meeting_url), courses(code,title,section), students(full_name,email), topic_categories(label)')
+      .eq('professor_id', professorId)
+      .in('status', ['scheduled', 'checked_in', 'ready', 'late', 'in_session'])
+      .gte('appointment_slots.starts_at', now)
+      .order('starts_at', { referencedTable: 'appointment_slots', ascending: true })
+      .limit(6)
   ]);
 
   return {
@@ -37,6 +53,7 @@ export async function getProfessorDashboard(professorId: string) {
     sessions: sessions ?? [],
     appointmentCount: appointments?.length ?? 0,
     queueCount: queueEntries?.length ?? 0,
+    upcomingAppointments: upcomingAppointments ?? [],
     activeWaiting: queueEntries?.filter((entry) => ['waiting', 'next', 'ready', 'checked_in', 'late'].includes(entry.status)).length ?? 0
   };
 }
