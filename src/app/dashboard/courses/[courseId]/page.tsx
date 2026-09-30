@@ -7,8 +7,9 @@ import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { archiveCourse, cancelAppointmentByInstructor, closeAppointmentSlot, closeAppointmentSlotsForDay, createOfficeHourBlock, createTuesdayDemoSchedule, reopenAppointmentSlot, reopenAppointmentSlotsForDay } from '../actions';
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+export default async function CourseDetailPage({ params, searchParams }: { params: Promise<{ courseId: string }>; searchParams?: Promise<{ success?: string; error?: string }> }) {
   const { courseId } = await params;
+  const query = searchParams ? await searchParams : {};
   const { user } = await requireProfessor();
   const supabase = await createSupabaseServerClient();
   const { data: course } = await supabase
@@ -44,6 +45,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
+          {query.success ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-success">
+              {query.success}
+            </div>
+          ) : null}
+
+          {query.error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-danger">
+              {query.error}
+            </div>
+          ) : null}
+
           <Card>
             <p className="text-sm font-semibold uppercase tracking-wide text-campus">{course.terms?.name}</p>
             <h1 className="mt-2 text-3xl font-bold text-ink">{course.code}</h1>

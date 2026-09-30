@@ -7,6 +7,12 @@ import { createCourseSchema } from '@/lib/validation';
 import { requireProfessor } from '@/lib/data';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
+function redirectToCourse(courseId: string, params: Record<string, string> = {}) {
+  const search = new URLSearchParams(params).toString();
+  redirect(`/dashboard/courses/${courseId}${search ? `?${search}` : ''}`);
+}
+
+
 export async function createTerm(formData: FormData) {
   const { user } = await requireProfessor();
   const name = String(formData.get('name') ?? '').trim();
@@ -142,7 +148,7 @@ export async function cancelAppointmentByInstructor(formData: FormData) {
   if (!appointment) throw new Error('Appointment not found.');
 
   if (['completed', 'cancelled_by_student', 'cancelled_by_instructor', 'no_show'].includes(appointment.status)) {
-    redirect(`/dashboard/courses/${courseId}`);
+    redirectToCourse(courseId, { success: 'Office-hour block created.' });
   }
 
   const { error: updateAppointmentError } = await supabase
@@ -165,7 +171,7 @@ export async function cancelAppointmentByInstructor(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId, { success: 'Student booking cancelled and the slot was reopened.' });
 }
 
 
@@ -199,7 +205,7 @@ export async function closeAppointmentSlot(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId, { success: 'Slot closed. Students can no longer book that time.' });
 }
 
 export async function reopenAppointmentSlot(formData: FormData) {
@@ -234,7 +240,7 @@ export async function reopenAppointmentSlot(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId, { success: 'Closed slots for that day were reopened.' });
 }
 
 
@@ -293,7 +299,7 @@ export async function createOfficeHourBlock(formData: FormData) {
   if (overlapError) throw overlapError;
 
   if ((overlappingSlotCount ?? 0) > 0) {
-    throw new Error('This course already has appointment slots during that time block.');
+    redirectToCourse(courseId, { error: 'This course already has appointment slots during that time block.' });
   }
 
   const dayOfWeek = startsAt.getDay();
@@ -352,7 +358,7 @@ export async function createOfficeHourBlock(formData: FormData) {
   }
 
   if (slots.length === 0) {
-    throw new Error('That time block is too short for the selected slot length.');
+    redirectToCourse(courseId, { error: 'That time block is too short for the selected slot length.' });
   }
 
   const { error: slotsError } = await supabase.from('appointment_slots').insert(slots);
@@ -366,7 +372,7 @@ export async function createOfficeHourBlock(formData: FormData) {
     redirect(`/dashboard/live/${session.id}`);
   }
 
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId);
 }
 
 
@@ -376,7 +382,7 @@ export async function closeAppointmentSlotsForDay(formData: FormData) {
   const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
 
   if (!courseId) throw new Error('Course is required.');
-  if (slotIds.length === 0) redirect(`/dashboard/courses/${courseId}`);
+  if (slotIds.length === 0) redirectToCourse(courseId);
 
   const supabase = await createSupabaseServerClient();
 
@@ -392,7 +398,7 @@ export async function closeAppointmentSlotsForDay(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId, { success: 'All open slots for that day were closed.' });
 }
 
 export async function reopenAppointmentSlotsForDay(formData: FormData) {
@@ -401,7 +407,7 @@ export async function reopenAppointmentSlotsForDay(formData: FormData) {
   const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
 
   if (!courseId) throw new Error('Course is required.');
-  if (slotIds.length === 0) redirect(`/dashboard/courses/${courseId}`);
+  if (slotIds.length === 0) redirectToCourse(courseId);
 
   const supabase = await createSupabaseServerClient();
 
@@ -432,5 +438,5 @@ export async function reopenAppointmentSlotsForDay(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirect(`/dashboard/courses/${courseId}`);
+  redirectToCourse(courseId);
 }
