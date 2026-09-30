@@ -28,6 +28,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   const studentUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/c/${course.public_slug}`;
 
+  const slotsByDate = (slots ?? []).reduce((groups: Record<string, any[]>, slot: any) => {
+    const date = new Date(slot.starts_at);
+    const key = date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(slot);
+
+    return groups;
+  }, {});
+
+  const slotGroups = Object.entries(slotsByDate);
+
   return (
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -146,60 +158,100 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           </Card>
 
           <Card>
-            <h2 className="text-xl font-bold text-ink">Appointment slots</h2>
-            <ul className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              {(slots ?? []).map((slot: any) => {
-                const appointment = (slot.appointments ?? []).find((appt: any) => ['scheduled', 'checked_in', 'ready', 'late', 'in_session'].includes(appt.status));
-                const student = appointment?.students;
-                const topic = appointment?.topic_categories;
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-ink">Appointment slots</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Open a date to view slots, bookings, and closed times.
+                </p>
+              </div>
+              <p className="text-sm text-slate-500">{(slots ?? []).length} total slots</p>
+            </div>
 
-                return (
-                  <li key={slot.id} id={appointment ? 'appointment-' + appointment.id : undefined} className="rounded-xl bg-slate-50 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-ink">{new Date(slot.starts_at).toLocaleString()}</p>
-                        <p className="mt-1 text-slate-500">Slot status: {slot.status}</p>
-                      </div>
-                      {appointment ? <span className="rounded-full bg-calm px-3 py-1 text-xs font-semibold text-campus">booked</span> : null}
-                    </div>
+            <div className="mt-4 space-y-3">
+              {slotGroups.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">No appointment slots yet.</p>
+              ) : (
+                slotGroups.map(([dateLabel, daySlots], index) => {
+                  const availableCount = daySlots.filter((slot: any) => slot.status === 'available').length;
+                  const closedCount = daySlots.filter((slot: any) => slot.status === 'cancelled').length;
+                  const bookedCount = daySlots.filter((slot: any) =>
+                    (slot.appointments ?? []).some((appt: any) => ['scheduled', 'checked_in', 'ready', 'late', 'in_session'].includes(appt.status))
+                  ).length;
 
-                    {appointment ? (
-                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                        <p className="font-semibold text-ink">{student?.full_name ?? 'Unknown student'}</p>
-                        {student?.email ? <p className="text-xs text-slate-500">{student.email}</p> : null}
-                        {topic?.label ? <p className="mt-2 text-sm text-campus">{topic.label}</p> : null}
-                        {appointment.topic_description ? <p className="mt-1 text-sm text-slate-600">{appointment.topic_description}</p> : null}
+                  return (
+                    <details key={dateLabel} open={index === 0} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-semibold text-ink">{dateLabel}</p>
+                            <p className="text-sm text-slate-500">{daySlots.length} slots total</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-success">{availableCount} open</span>
+                            <span className="rounded-full bg-calm px-3 py-1 text-campus">{bookedCount} booked</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{closedCount} closed</span>
+                          </div>
+                        </div>
+                      </summary>
 
-                        <form action={cancelAppointmentByInstructor} className="mt-3">
-                          <input type="hidden" name="appointmentId" value={appointment.id} />
-                          <input type="hidden" name="courseId" value={course.id} />
-                          <Button type="submit" variant="danger">Cancel student booking and reopen slot</Button>
-                        </form>
-                      </div>
-                    ) : (
-                      <div className="mt-3">
-                        {slot.status === 'available' ? (
-                          <form action={closeAppointmentSlot}>
-                            <input type="hidden" name="slotId" value={slot.id} />
-                            <input type="hidden" name="courseId" value={course.id} />
-                            <Button type="submit" variant="secondary">Close this slot</Button>
-                          </form>
-                        ) : null}
+                      <ul className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                        {daySlots.map((slot: any) => {
+                          const appointment = (slot.appointments ?? []).find((appt: any) => ['scheduled', 'checked_in', 'ready', 'late', 'in_session'].includes(appt.status));
+                          const student = appointment?.students;
+                          const topic = appointment?.topic_categories;
 
-                        {slot.status === 'cancelled' ? (
-                          <form action={reopenAppointmentSlot}>
-                            <input type="hidden" name="slotId" value={slot.id} />
-                            <input type="hidden" name="courseId" value={course.id} />
-                            <Button type="submit" variant="secondary">Reopen this slot</Button>
-                          </form>
-                        ) : null}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-              {(slots ?? []).length === 0 ? <li>No appointment slots yet.</li> : null}
-            </ul>
+                          return (
+                            <li key={slot.id} id={appointment ? 'appointment-' + appointment.id : undefined} className="rounded-xl bg-slate-50 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-ink">{new Date(slot.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+                                  <p className="mt-1 text-slate-500">Slot status: {slot.status}</p>
+                                </div>
+                                {appointment ? <span className="rounded-full bg-calm px-3 py-1 text-xs font-semibold text-campus">booked</span> : null}
+                              </div>
+
+                              {appointment ? (
+                                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                                  <p className="font-semibold text-ink">{student?.full_name ?? 'Unknown student'}</p>
+                                  {student?.email ? <p className="text-xs text-slate-500">{student.email}</p> : null}
+                                  {topic?.label ? <p className="mt-2 text-sm text-campus">{topic.label}</p> : null}
+                                  {appointment.topic_description ? <p className="mt-1 text-sm text-slate-600">{appointment.topic_description}</p> : null}
+
+                                  <form action={cancelAppointmentByInstructor} className="mt-3">
+                                    <input type="hidden" name="appointmentId" value={appointment.id} />
+                                    <input type="hidden" name="courseId" value={course.id} />
+                                    <Button type="submit" variant="danger">Cancel student booking and reopen slot</Button>
+                                  </form>
+                                </div>
+                              ) : (
+                                <div className="mt-3">
+                                  {slot.status === 'available' ? (
+                                    <form action={closeAppointmentSlot}>
+                                      <input type="hidden" name="slotId" value={slot.id} />
+                                      <input type="hidden" name="courseId" value={course.id} />
+                                      <Button type="submit" variant="secondary">Close this slot</Button>
+                                    </form>
+                                  ) : null}
+
+                                  {slot.status === 'cancelled' ? (
+                                    <form action={reopenAppointmentSlot}>
+                                      <input type="hidden" name="slotId" value={slot.id} />
+                                      <input type="hidden" name="courseId" value={course.id} />
+                                      <Button type="submit" variant="secondary">Reopen this slot</Button>
+                                    </form>
+                                  ) : null}
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  );
+                })
+              )}
+            </div>
           </Card>
 
           <Card>
