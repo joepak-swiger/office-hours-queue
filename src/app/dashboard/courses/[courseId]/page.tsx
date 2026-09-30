@@ -34,7 +34,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
         <div className="space-y-6">
           <Card>
             <p className="text-sm font-semibold uppercase tracking-wide text-campus">{course.terms?.name}</p>
-            <h1 className="mt-2 text-3xl font-bold text-ink">{course.code}{course.section ? ` · ${course.section}` : ''}</h1>
+            <h1 className="mt-2 text-3xl font-bold text-ink">{course.code}{course.section ? ` - ${course.section}` : ''}</h1>
             <p className="mt-2 text-slate-600">{course.title}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <ButtonLink href={studentUrl} variant="secondary">Open student page</ButtonLink>
@@ -64,7 +64,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               <div>
                 <h3 className="font-semibold text-ink">Recent sessions</h3>
                 <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                  {(sessions ?? []).map((session: any) => <li key={session.id} className="rounded-xl bg-slate-50 p-3"><a href={`/dashboard/live/${session.id}`}>{new Date(session.starts_at).toLocaleString()} · {session.status}</a></li>)}
+                  {(sessions ?? []).map((session: any) => <li key={session.id} className="rounded-xl bg-slate-50 p-3"><a href={`/dashboard/live/${session.id}`}>{new Date(session.starts_at).toLocaleString()} - {session.status}</a></li>)}
                   {(sessions ?? []).length === 0 ? <li>No sessions yet.</li> : null}
                 </ul>
               </div>
@@ -74,7 +74,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           <Card>
             <h2 className="text-xl font-bold text-ink">Appointment slots</h2>
             <ul className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              {(slots ?? []).map((slot: any) => <li key={slot.id} className="rounded-xl bg-slate-50 p-3">{new Date(slot.starts_at).toLocaleString()} · {slot.status}</li>)}
+              {(slots ?? []).map((slot: any) => <li key={slot.id} className="rounded-xl bg-slate-50 p-3">{new Date(slot.starts_at).toLocaleString()} - {slot.status}</li>)}
               {(slots ?? []).length === 0 ? <li>No appointment slots yet.</li> : null}
             </ul>
           </Card>

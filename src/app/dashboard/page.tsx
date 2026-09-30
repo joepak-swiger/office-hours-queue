@@ -39,7 +39,7 @@ export default async function DashboardPage() {
                 <a key={session.id} href={`/dashboard/live/${session.id}`} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-campus">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-ink">{session.courses?.code} · {session.courses?.title}</p>
+                      <p className="font-semibold text-ink">{session.courses?.code} - {session.courses?.title}</p>
                       <p className="text-sm text-slate-500">{new Date(session.starts_at).toLocaleString()} to {new Date(session.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
                     </div>
                     <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-medium text-success">{session.status}</span>
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
             ) : (
               dashboard.courses.map((course: any) => (
                 <a key={course.id} href={`/dashboard/courses/${course.id}`} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-campus">
-                  <p className="font-semibold text-ink">{course.code} {course.section ? `· ${course.section}` : ''}</p>
+                  <p className="font-semibold text-ink">{course.code} {course.section ? ` - ${course.section}` : ''}</p>
                   <p className="text-sm text-slate-500">{course.title}</p>
                   <p className="mt-2 text-xs text-slate-400">QR URL: /c/{course.public_slug}</p>
                 </a>

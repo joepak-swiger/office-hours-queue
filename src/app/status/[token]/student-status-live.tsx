@@ -40,7 +40,7 @@ export function StudentStatusLive({ token, initialStatus }: { token: string; ini
   return (
     <div className="mt-5 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
       <p aria-live="polite">
-        Live updates: {connected ? 'connected' : 'reconnecting'} · Current status:{' '}
+        Live updates: {connected ? 'connected' : 'reconnecting'} Â· Current status:{' '}
         <strong>{status.replaceAll('_', ' ')}</strong>
       </p>
       {canNotify ? (
