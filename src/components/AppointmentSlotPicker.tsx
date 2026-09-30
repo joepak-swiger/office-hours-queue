@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 type AppointmentSlot = {
   id: string;
@@ -93,6 +93,7 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
   const [selectedSlotId, setSelectedSlotId] = useState(grouped[firstDateKey]?.[0]?.id ?? '');
 
   const selectedSlots = selectedDate ? grouped[selectedDate] ?? [] : [];
+  const timePanelRef = useRef<HTMLDivElement>(null);
   const availableDateSet = useMemo(() => new Set(dateKeys), [dateKeys]);
 
   const calendarDays = useMemo(() => {
@@ -130,6 +131,12 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
   function chooseDate(key: string) {
     setSelectedDate(key);
     setSelectedSlotId(grouped[key]?.[0]?.id ?? '');
+
+    window.setTimeout(() => {
+      if (window.matchMedia('(max-width: 1279px)').matches) {
+        timePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   }
 
   if (slots.length === 0) return null;
@@ -201,10 +208,11 @@ export function AppointmentSlotPicker({ slots }: { slots: AppointmentSlot[] }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div ref={timePanelRef} className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-semibold text-ink">{selectedDate ? formatDateLabel(selectedDate) : 'Choose a day'}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-campus">Available times</p>
+              <p className="mt-1 font-semibold text-ink">{selectedDate ? formatDateLabel(selectedDate) : 'Choose a day'}</p>
               <p className="text-sm text-slate-500">
                 {selectedSlots.length} available {selectedSlots.length === 1 ? 'time' : 'times'}.
               </p>
