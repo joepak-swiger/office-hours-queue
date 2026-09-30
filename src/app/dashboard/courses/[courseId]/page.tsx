@@ -45,15 +45,21 @@ export default async function CourseDetailPage({ params, searchParams }: { param
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          {query.success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-success">
-              {query.success}
-            </div>
-          ) : null}
+          {(query.success || query.error) ? (
+            <div className="fixed left-1/2 top-20 z-50 w-[min(92vw,720px)] -translate-x-1/2">
+              {query.success ? (
+                <div className="flex items-start justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-success shadow-xl">
+                  <span>{query.success}</span>
+                  <a href={`/dashboard/courses/${course.id}`} className="shrink-0 text-xs font-bold text-success">Dismiss</a>
+                </div>
+              ) : null}
 
-          {query.error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-danger">
-              {query.error}
+              {query.error ? (
+                <div className="flex items-start justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-danger shadow-xl">
+                  <span>{query.error}</span>
+                  <a href={`/dashboard/courses/${course.id}`} className="shrink-0 text-xs font-bold text-danger">Dismiss</a>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

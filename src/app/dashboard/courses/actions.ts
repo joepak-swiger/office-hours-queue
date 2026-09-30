@@ -240,7 +240,7 @@ export async function reopenAppointmentSlot(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirectToCourse(courseId, { success: 'Closed slots for that day were reopened.' });
+  redirectToCourse(courseId, { success: 'Slot reopened. Students can book that time again.' });
 }
 
 
@@ -372,7 +372,7 @@ export async function createOfficeHourBlock(formData: FormData) {
     redirect(`/dashboard/live/${session.id}`);
   }
 
-  redirectToCourse(courseId);
+  redirectToCourse(courseId, { success: 'Office-hour block created.' });
 }
 
 
@@ -382,7 +382,7 @@ export async function closeAppointmentSlotsForDay(formData: FormData) {
   const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
 
   if (!courseId) throw new Error('Course is required.');
-  if (slotIds.length === 0) redirectToCourse(courseId);
+  if (slotIds.length === 0) redirectToCourse(courseId, { success: 'All open slots for that day were closed.' });
 
   const supabase = await createSupabaseServerClient();
 
@@ -407,7 +407,7 @@ export async function reopenAppointmentSlotsForDay(formData: FormData) {
   const slotIds = formData.getAll('slotIds').map((value) => String(value).trim()).filter(Boolean);
 
   if (!courseId) throw new Error('Course is required.');
-  if (slotIds.length === 0) redirectToCourse(courseId);
+  if (slotIds.length === 0) redirectToCourse(courseId, { success: 'Closed slots for that day were reopened.' });
 
   const supabase = await createSupabaseServerClient();
 
@@ -438,5 +438,5 @@ export async function reopenAppointmentSlotsForDay(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath(`/dashboard/courses/${courseId}`);
-  redirectToCourse(courseId);
+  redirectToCourse(courseId, { success: 'Closed slots for that day were reopened.' });
 }
