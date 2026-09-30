@@ -30,7 +30,7 @@ export default async function QueuePage({
         {session ? (
           <form method="post" action="/api/queue/join" className="mt-6 grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="sessionId" value={session.id} />
-            <StudentIntakeFields categories={categories} courseId={course.id} />
+            <StudentIntakeFields categories={categories} courseId={course.id} courseSection={course.section ?? ''} />
             <div className="sm:col-span-2"><Button type="submit">Join queue</Button></div>
           </form>
         ) : null}

@@ -34,7 +34,7 @@ export default async function BookPage({
               {slots.map((slot: any) => <option key={slot.id} value={slot.id}>{new Date(slot.starts_at).toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</option>)}
             </select>
           </label>
-          <StudentIntakeFields categories={categories} courseId={course.id} />
+          <StudentIntakeFields categories={categories} courseId={course.id} courseSection={course.section ?? ''} />
           <div className="sm:col-span-2"><Button type="submit">Confirm appointment</Button></div>
         </form>
       </Card>
